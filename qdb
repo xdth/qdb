@@ -1,0 +1,192 @@
+#! /bin/bash
+
+# ############################ QuickDB 0.1 ##############################
+#
+# This script will create a DB name, DB user and DB password.
+#
+# Usage: 
+# qdb [-n <database name> ] [-u <database user>] [-p <database password>]
+#
+# Notes:
+# 1. Modify the DB parameters below to avoid being prompted for a
+#    SQL username/password
+# 2. For convenience, add this script to your /usr/bin or alike with
+#    chmod +x permissions.
+# 2. License: MIT
+# 3. Author: dth at alterland dot net  -  Brussels, May 30, 2015
+# #######################################################################
+
+
+# #######################################################################
+# ## Parameters (if empty, you will be prompted for a password)
+
+qdb_sqluser=""                  # optional (do not use root)
+qdb_sqlpassword=""              # optional
+
+
+# #######################################################################
+# ## Functions
+
+function help {
+  echo "Usage: qdb [-n <database name> ] [-u <database user>] [-p <database password>]
+Mandatory Options:
+  -n, --name
+  -u, --user
+  -p, --password
+
+  Example: qdb -n Name -u User -p Pass"
+exit 1
+}
+
+function seeya {
+  echo "Thanks for using QuickDB v1. Have a good day."
+}
+
+function testcancel {
+  if test $? -eq 0
+  then 
+    ok=ok
+  else
+    clear
+    echo "The operation was canceled"
+    seeya
+    exit 1
+  fi
+}
+
+function op_success {
+  clear
+  echo "The operation was concluded successfully"
+  seeya
+}
+
+function create_db_user_local {
+  query1="GRANT ALL PRIVILEGES ON $qdb_name.* TO '$qdb_user'@'localhost' IDENTIFIED BY '$qdb_pwd';FLUSH PRIVILEGES;"
+}
+
+function create_db_user_remote { # @todo :: yet to implement
+  query2="GRANT ALL PRIVILEGES ON $qdb_name.* TO '$qdb_user'@'%' IDENTIFIED BY '$qdb_pwd';FLUSH PRIVILEGES;"
+}
+
+function create_db {
+  query3="DROP DATABASE IF EXISTS $qdb_name;"
+  query4="CREATE DATABASE $qdb_name DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"
+}
+
+function run_queries {      
+      create_db_user_local
+      # @todo :: implement create_db_user_remote
+      create_db
+      
+      sql_query=${query1}${query2}${query3}${query4}
+      mysql -u "$qdb_sqluser" -p"$qdb_sqlpassword" -e "$sql_query"
+}
+
+function qdb {
+  # Are all arguments there?
+  if [ -z "$qdb_name" ] || [ -z "$qdb_user" ] || [ -z "$qdb_pwd" ]; then 
+   echo "Error: missing argument. All 3 fields are required."; help
+  else
+    # What about DB parameters?
+    if [ -z "$qdb_sqluser" ] || [ -z "$qdb_sqlpassword" ]; then
+      # DB parameters empty. Prompting mysql.
+      while [ -z "$qdb_sqluser" ]; do
+        clear
+        echo "Now connecting to the SQL server for adding the new DB, user and password"
+        echo -n "Enter username: "
+        read qdb_sqluser
+      done
+      run_queries && (op_success; exit 0) || (c=$?; echo "Failed connecting to DB server"; (exit $c))
+    else
+      # DB parameters set. No further user input will be required.
+      run_queries && (op_success; exit 0) || (c=$?; echo "Failed connecting to DB server"; (exit $c)) # @todo :: refactoring
+    fi    
+  fi
+}
+
+# ## "GUI"
+function qdbgui {
+  # Intro
+  if (dialog --title " QuickDB 0.1 " --yesno "
+\nThis script will create a SQL database, an associated local user \
+with GRANT ALL privileges and his password.\n\n
+If there is a DB already with the same name, it will be deleted\n\n\
+Do you want to proceed?" 13 60)  # size of 60x13 characters
+  then
+      # Get data      
+      while [ -z "$qdb_name" ]; do
+        qdb_name=$(\
+        dialog --title " Creating a database " \
+        --backtitle " QuickDB 0.1 " \
+        --inputbox "Enter database name " 8 60 \
+        3>&1 1>&2 2>&3 3>&- \
+        )
+        testcancel
+      done
+        
+      while [ -z "$qdb_user" ]; do
+        qdb_user=$(\
+        dialog --title " Creating a local user " \
+        --backtitle " QuickDB 0.1 " \
+        --inputbox "Enter username " 8 60 \
+        3>&1 1>&2 2>&3 3>&- \
+        )
+        testcancel
+      done
+      
+      while [ -z "$qdb_pwd" ]; do
+        qdb_pwd=$(\
+        dialog --title " Choosing user password " \
+        --backtitle " QuickDB 0.1 " \
+        --inputbox "Enter user password " 8 60 \
+        3>&1 1>&2 2>&3 3>&- \
+        )
+        testcancel
+      done
+  else
+      testcancel
+      exit 1
+  fi
+}
+
+
+# ## Default if no input
+  # [[ $# -eq 0 ]] && help  # if no input, display help
+    [[ $# -eq 0 ]] && qdbgui # if no input, display gui
+
+
+# #######################################################################
+# ## Main
+
+while [[ $# > 0 ]]
+do
+  case "$1" in
+    -n|--name) 
+              qdb_name="$2" 
+              shift 
+              ;;
+
+    -u|--user) 
+              qdb_user="$2" 
+              shift 
+              ;;
+    
+    -p|--password) 
+              qdb_pwd="$2" 
+              shift 
+              ;;
+    
+    -h|--help) 
+              help 
+              shift 
+              ;;
+    *) 
+              echo "qdb: invalid option \""$1"\""
+              echo "Try 'qdb --help' for more information."; exit 1
+  esac
+  shift
+done
+
+
+# ## Where the magic happens
+qdb
