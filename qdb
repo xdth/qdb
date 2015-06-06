@@ -74,12 +74,12 @@ function create_db {
 }
 
 function run_queries {      
-      create_db_user_local
-      # @todo :: implement create_db_user_remote
-      create_db
-      
-      sql_query=${query1}${query2}${query3}${query4}
-      mysql -u "$qdb_sqluser" -p"$qdb_sqlpassword" -e "$sql_query"
+  create_db_user_local
+  # @todo :: implement create_db_user_remote
+  create_db
+  
+  sql_query=${query1}${query2}${query3}${query4}
+  mysql -u "$qdb_sqluser" -p"$qdb_sqlpassword" -e "$sql_query"
 }
 
 function qdb {
