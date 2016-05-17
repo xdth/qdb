@@ -94,7 +94,7 @@ function qdb {
         clear
         echo "Now connecting to the SQL server for adding the new DB, user and password"
         echo -n "Enter username: "
-        read qdb_sqluser
+        read -r qdb_sqluser
       done
       run_queries && (op_success; exit 0) || (c=$?; echo "Failed connecting to DB server"; (exit $c))
     else
