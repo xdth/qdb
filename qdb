@@ -45,7 +45,7 @@ function seeya {
 function testcancel {
   if test $? -eq 0
   then 
-    ok=ok
+    return
   else
     clear
     echo "The operation was canceled"
