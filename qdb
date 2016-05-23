@@ -45,7 +45,7 @@ function seeya {
 function testcancel {
   if test $? -eq 0
   then 
-    ok=ok
+    return
   else
     clear
     echo "The operation was canceled"
@@ -94,7 +94,7 @@ function qdb {
         clear
         echo "Now connecting to the SQL server for adding the new DB, user and password"
         echo -n "Enter username: "
-        read qdb_sqluser
+        read -r qdb_sqluser
       done
       run_queries && (op_success; exit 0) || (c=$?; echo "Failed connecting to DB server"; (exit $c))
     else
@@ -158,7 +158,7 @@ Do you want to proceed?" 13 60)  # size of 60x13 characters
 # #######################################################################
 # ## Main
 
-while [[ $# > 0 ]]
+while [[ $# -gt 0 ]]
 do
   case "$1" in
     -n|--name) 
